@@ -732,15 +732,18 @@ profile() {
     clear
 
     # ---- FIX #3: .profile bersih, TIDAK auto-call menu setiap login ----
+    # Welcome banner dipanggil sekali saat login, ringan (tidak ada network call).
     cat > /root/.profile <<'EOF'
 # ~/.profile: dipanggil saat shell login interaktif.
 if [ -n "$BASH" ] && [ -f ~/.bashrc ]; then
     . ~/.bashrc
 fi
 mesg n 2>/dev/null || true
-echo
-echo "Ketik 'menu' untuk membuka panel kontrol."
-echo
+# Tampilkan welcome screen (kalau ada). File ini dipasang oleh install.sh
+# di /usr/local/sbin/welcome. Hapus baris di bawah kalau tidak mau.
+if [ -x /usr/local/sbin/welcome ]; then
+    /usr/local/sbin/welcome
+fi
 EOF
     chmod 644 /root/.profile
 
