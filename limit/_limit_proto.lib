@@ -1,15 +1,14 @@
 #!/bin/bash
-# limit/quota — daemon pembatas kuota XRay (vmess/vless/trojan)
-# FIX #22: TOKEN_BOT/ID_TELE placeholder diganti membaca dari /etc/bot/.bot.db
-#         supaya konsisten dengan limit/{vmess,vless,trojan,shadowsocks}.
+# Common library untuk limit/{vmess,vless,trojan,shadowsocks}
+# Tidak dijalankan langsung; di-source oleh script per-protokol.
 
 send-log() {
     CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" 2>/dev/null | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" 2>/dev/null | cut -d ' ' -f 2)
     [ -z "$CHATID" ] || [ -z "$KEY" ] && return 0
-    TIME="10"
-    URL="https://api.telegram.org/bot$KEY/sendMessage"
-    TEXT="
+    local TIME="10"
+    local URL="https://api.telegram.org/bot$KEY/sendMessage"
+    local TEXT="
 <code>────────────────────</code>
 <b>⚠️NOTIF QUOTA HABIS⚠️</b>
 <code>────────────────────</code>
@@ -29,7 +28,8 @@ con() {
     fi
 }
 
-cek_proto() {
+# Akumulasi statistik dari xray api ke /etc/limit/<proto>/<user>
+accumulate_stats() {
     local prefix="$1" dir="$2"
     local data
     data=( $(grep "^${prefix}" /etc/xray/config.json | cut -d ' ' -f 2 | sort -u) )
@@ -56,16 +56,15 @@ cek_proto() {
     done
 }
 
-cekvmess()  { cek_proto "###" vmess;  }
-cekvless()  { cek_proto "#&"  vless;  }
-cektrojan() { cek_proto "#!"  trojan; }
-
-run_loop() {
-    local prefix="$1" dir="$2" cek_fn="$3" db="$4"
+# Loop utama: cek user yang sudah lampaui kuota lalu hapus.
+# FIX #5/#37: cuma restart xray sekali per iterasi (kalau ada user dihapus).
+run_protocol_loop() {
+    local prefix="$1" dir="$2" db="$3"
     while true; do
         sleep 60
-        "$cek_fn"
-        local data
+        accumulate_stats "$prefix" "$dir"
+
+        local data dirty=0
         data=( $(grep "^${prefix}" /etc/xray/config.json | cut -d ' ' -f 2 | sort -u) )
         for user in "${data[@]}"; do
             [ -e "/etc/${dir}/${user}" ] || continue
@@ -79,23 +78,15 @@ run_loop() {
                 exp=$(grep -w "^${prefix} $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort -u)
                 sed -i "/^${prefix} $user $exp/,/^},{/d" /etc/xray/config.json
                 sed -i "/^### $user $exp/d" "$db"
-                systemctl restart xray >/dev/null 2>&1
                 bol=$(cat "/etc/limit/${dir}/${user}")
                 total=$(con "$bol")
                 send-log
                 rm -f "/etc/limit/${dir}/${user}"
+                dirty=1
             fi
         done
+        if [[ $dirty -eq 1 ]]; then
+            systemctl restart xray >/dev/null 2>&1
+        fi
     done
 }
-
-vmess()  { run_loop "###" vmess  cekvmess  /etc/vmess/.vmess.db;  }
-vless()  { run_loop "#&"  vless  cekvless  /etc/vless/.vless.db;  }
-trojan() { run_loop "#!"  trojan cektrojan /etc/trojan/.trojan.db; }
-
-case "${1:-}" in
-    vmess) vmess ;;
-    vless) vless ;;
-    trojan) trojan ;;
-    *) echo "Usage: $0 {vmess|vless|trojan}"; exit 2 ;;
-esac

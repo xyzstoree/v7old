@@ -1,12 +1,12 @@
 [Unit]
-Description=Automatically
+Description=Prepare /var/run/xray ownership
 After=network.target
 
 [Service]
-Type=simple
+Type=oneshot
 ExecStartPre=-/usr/bin/mkdir -p /var/run/xray
-ExecStart=/usr/bin/chown www-data:www-data /var/run/xray
-Restart=on-abort
+ExecStart=/bin/chown www-data:www-data /var/run/xray
+RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target

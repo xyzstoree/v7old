@@ -1,95 +1,52 @@
 #!/bin/bash
-function send-log(){
-CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
-KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
-TIME="10"
-URL="https://api.telegram.org/bot$KEY/sendMessage"
-TEXT="
-<code>────────────────────</code>
-<b>⚠️NOTIF QUOTA HABIS⚠️</b>
-<code>────────────────────</code>
-<code>Username  : </code><code>$user</code>
-<code>Usage     : </code><code>$total</code>
-<code>────────────────────</code>
-"
-curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
-}
+# limit/shadowsocks — daemon kuota shadowsocks
+# FIX #5/#37: restart xray hanya ketika ada user expired, sleep 60s
+LIB="$(dirname "$(readlink -f "$0")")/_limit_proto.lib"
+[ -f "$LIB" ] && . "$LIB" || . /etc/xray/_limit_proto.lib
 
-function con() {
-    local -i bytes=$1;
-    if [[ $bytes -lt 1024 ]]; then
-        echo "${bytes}B"
-    elif [[ $bytes -lt 1048576 ]]; then
-        echo "$(( (bytes + 1023)/1024 ))KB"
-    elif [[ $bytes -lt 1073741824 ]]; then
-        echo "$(( (bytes + 1048575)/1048576 ))MB"
-    else
-        echo "$(( (bytes + 1073741823)/1073741824 ))GB"
-    fi
-}
+# Shadowsocks pakai prefix "#!#" dan reads dari /etc/shadowsocks/.shadowsocks.db
+while true; do
+    sleep 60
+    data=( $(grep '^#!#' /etc/shadowsocks/.shadowsocks.db | cut -d ' ' -f 2 | sort -u) )
+    mkdir -p /etc/limit/shadowsocks
 
-  while true; do
-  sleep 30
-  data=($(cat /etc/shadowsocks/.shadowsocks.db | grep '^#!#' | cut -d ' ' -f 2 | sort | uniq))
-  if [[ ! -e /etc/limit/shadowsocks ]]; then
-  mkdir -p /etc/limit/shadowsocks
-  fi
-  for user in ${data[@]}
-  do
-  xray api stats --server=127.0.0.1:10000 -name "user>>>${user}>>>traffic>>>downlink" >& /tmp/${user}
-  getThis=$(cat /tmp/${user} | awk '{print $1}');
-  if [[ ${getThis} != "failed" ]]; then
-        downlink=$(xray api stats --server=127.0.0.1:10000 -name "user>>>${user}>>>traffic>>>downlink" | grep -w "value" | awk '{print $2}' | cut -d '"' -f2);
-        if [ -e /etc/limit/shadowsocks/${user} ]; then
-        plus2=$(cat /etc/limit/shadowsocks/${user});
-        if [[ ${#plus2} -gt 0 ]]; then
-        plus3=$(( ${downlink} + ${plus2} ));
-        echo "${plus3}" > /etc/limit/shadowsocks/"${user}"
-        xray api stats --server=127.0.0.1:10000 -name "user>>>${user}>>>traffic>>>downlink" -reset > /dev/null 2>&1
-        else
-        echo "${downlink}" > /etc/limit/shadowsocks/"${user}"
-        xray api stats --server=127.0.0.1:10000 -name "user>>>${user}>>>traffic>>>downlink" -reset > /dev/null 2>&1
+    for user in "${data[@]}"; do
+        xray api stats --server=127.0.0.1:10000 -name "user>>>${user}>>>traffic>>>downlink" >& "/tmp/${user}"
+        getThis=$(awk '{print $1}' "/tmp/${user}")
+        [[ "$getThis" == "failed" ]] && continue
+        downlink=$(xray api stats --server=127.0.0.1:10000 -name "user>>>${user}>>>traffic>>>downlink" \
+            | grep -w value | awk '{print $2}' | tr -d '"')
+        if [ -e "/etc/limit/shadowsocks/${user}" ]; then
+            plus2=$(cat "/etc/limit/shadowsocks/${user}")
+            [[ ${#plus2} -gt 0 ]] && downlink=$(( ${downlink:-0} + plus2 ))
         fi
-        else
-        echo "${downlink}" > /etc/limit/shadowsocks/"${user}"
+        echo "${downlink:-0}" > "/etc/limit/shadowsocks/${user}"
         xray api stats --server=127.0.0.1:10000 -name "user>>>${user}>>>traffic>>>downlink" -reset > /dev/null 2>&1
+    done
+
+    dirty=0
+    for user in "${data[@]}"; do
+        [ -e "/etc/shadowsocks/${user}" ] || continue
+        checkLimit=$(cat "/etc/shadowsocks/${user}")
+        [[ ${#checkLimit} -gt 1 ]] || continue
+        [ -e "/etc/limit/shadowsocks/${user}" ] || continue
+        Usage=$(cat "/etc/limit/shadowsocks/${user}")
+        if [[ ${Usage} -gt ${checkLimit} ]]; then
+            exp=$(grep '^#!#' /etc/shadowsocks/.shadowsocks.db | grep -w "$user" | awk '{print $3}' | head -n1)
+            sed -i "/^#!# $user $exp/,/^},{/d" /etc/xray/config.json
+            sed -i "/^#!# $user $exp/d" /etc/shadowsocks/.shadowsocks.db
+            bol=$(cat "/etc/limit/shadowsocks/${user}")
+            total=$(con "$bol")
+            send-log
+            rm -f "/etc/shadowsocks/$user" "/etc/limit/shadowsocks/$user" \
+                  "/etc/funny/limit/shadowsocks/ip/${user}" \
+                  "/etc/limit/shadowsocks/quota/$user" \
+                  "/var/www/html/sodosokws-$user.txt"
+            dirty=1
         fi
-        else
-      echo ""
-   fi
-done
-# Check ur Account
-for user in ${data[@]}
-  do
-    if [ -e /etc/shadowsocks/${user} ]; then
-      checkLimit=$(cat /etc/shadowsocks/${user});
-      if [[ ${#checkLimit} -gt 1 ]]; then
-      if [ -e /etc/limit/shadowsocks/${user} ]; then
-      Usage=$(cat /etc/limit/shadowsocks/${user});
-      if [[ ${Usage} -gt ${checkLimit} ]]; then
-      exp=($(cat /etc/shadowsocks/.shadowsocks.db | grep '^#!#' | cut -d ' ' -f 2 | sort | uniq))
-      sed -i "/^#!# $user $exp/,/^},{/d" /etc/xray/config.json
-      sed -i "/^#!# $user $exp/d" /etc/shadowsocks/.shadowsocks.db
-      bol=$(cat /etc/limit/shadowsocks/${user});
-      total=$(con ${bol})
-      send-log
-        rm -f /etc/shadowsocks/$user
-        rm -f /etc/funny/limit/shadowsocks/ip/${user}
-        rm -f /etc/limit/shadowsocks/$user
-        rm -f /etc/limit/shadowsocks/quota/$user
-        rm -f /var/www/html/sodosokws-$user.txt
-      systemctl restart xray >> /dev/null 2>&1
-      else
-      echo ""
-      fi
-      else
-      echo ""
-      fi
-      else
-      echo ""
-      fi
-      else
-      echo ""
+    done
+
+    if [[ $dirty -eq 1 ]]; then
+        systemctl restart xray >/dev/null 2>&1
     fi
-  done
 done

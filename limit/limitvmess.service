@@ -1,12 +1,14 @@
 [Unit]
-Description=Limit Usage Xray Service
+Description=Limit Usage Xray Service (vmess)
 Documentation=FighterTunnel
-After=syslog.target network-online.target
+After=syslog.target network-online.target xray.service
 
 [Service]
 User=root
 NoNewPrivileges=true
 ExecStart=/etc/xray/limit.vmess
+Restart=on-failure
+RestartSec=15s
 
 [Install]
 WantedBy=multi-user.target

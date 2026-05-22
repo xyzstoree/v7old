@@ -1,4 +1,5 @@
-<h1 align="center">Autoscript Tunneling v7</h1>
+<h1 align="center">Autoscript Tunneling v7old</h1>
+<p align="center"><i>Versi rebuild dengan 57 bug-fix utama</i></p>
 
 ## 🚀 INSTALL SCRIPT
 
@@ -30,13 +31,10 @@ apt update -y && apt upgrade -y --fix-missing && apt install --reinstall wget cu
 ### 3. Install Script
 
 ```bash
-screen -S setup-session bash -c "wget -q https://raw.githubusercontent.com/xyzstoree/v7/main/install.sh && chmod +x install.sh && ./install.sh"
+screen -S setup-session bash -c "wget -q https://raw.githubusercontent.com/xyzstoree/v7old/main/install.sh && chmod +x install.sh && ./install.sh"
 ```
----
 
 ### Jika koneksi terputus saat instalasi
-
-Gunakan perintah berikut untuk masuk kembali ke session:
 
 ```bash
 screen -r -d setup-session
@@ -46,17 +44,13 @@ screen -r -d setup-session
 
 ## UPDATE SCRIPT
 
-Untuk melakukan update ke versi terbaru, gunakan:
-
 ```bash
-wget https://raw.githubusercontent.com/xyzstoree/v7/main/update.sh && chmod +x update.sh && ./update.sh
+wget https://raw.githubusercontent.com/xyzstoree/v7old/main/update.sh && chmod +x update.sh && ./update.sh
 ```
 
 ---
 
 ## TESTED ON OS
-
-Script ini sudah diuji pada sistem berikut:
 
 * Ubuntu 24.04.5 LTS
 * Debian 12 (Bookworm)
@@ -73,7 +67,7 @@ Script ini sudah diuji pada sistem berikut:
 * Core Xray by @BangToyibbz
 * Fail2ban security system
 * Auto block sebagian iklan Indonesia
-* Auto clean log tiap 3 menit
+* Auto clean log tiap **30 menit** (cocok dengan limit-ip 440s, FIX #4)
 * Auto delete akun expired
 * Detail user management
 
@@ -113,39 +107,37 @@ Under Attack Mode      : OFF
 
 ---
 
+## CATATAN PERBAIKAN PENTING (v7old rebuild)
+
+* **DNS chain** sudah tidak konflik dengan systemd-resolved (FIX #2)
+* **rc.local** memakai aturan iptables idempotent + `netfilter-persistent save` (FIX #1)
+* **`menu` tidak lagi di-eksekusi otomatis tiap login SSH** (FIX #3) — ketik `menu` saat butuh
+* **Auto-clean log** turun ke 30 menit, agar fitur limit-ip bekerja (FIX #4 + #5)
+* **Daily reboot** **non-aktif** secara default (FIX #6) — atur sendiri lewat menu autoreboot
+* **`tendang`/autokill** tidak lagi restart SSH/Dropbear setiap menit (FIX #34)
+* **Lisensi remote di `menu`** sekarang gracefully degraded saat GitHub down (FIX #31)
+
+---
+
 ## SUPPORTED SYSTEM
 
 ### Debian
-
 * 9 (Stretch) – Unstable
 * 10 (Buster) – Stable
 * 11 (Bullseye) – Stable
 * 12 (Bookworm) – Stable
-* 13 (Trixie) – Coming Soon
-* 14 (Forky) – Coming Soon
 
 ### Ubuntu
-
-* 18.04, 23.10 (various status)
-* 20.04 LTS, 22.04 LTS, 24.04 LTS – Stable recommended
+* 18.04, 20.04 LTS, 22.04 LTS, 24.04 LTS
 
 ### Kali Linux
-
-* Kali Rolling – Stable
+* Kali Rolling
 
 ---
 
 ## VIRTUALIZATION SUPPORT
 
-* Xen
-* KVM
-* VMware
-* XenServer
-* LXC
-* OpenVZ 7
-* Proxmox
-* Virtuozzo
-* ZFS environments
+* Xen, KVM, VMware, XenServer, LXC, Proxmox, Virtuozzo, ZFS
 
 ---
 
@@ -154,15 +146,6 @@ Under Attack Mode      : OFF
 * RAM: 512MB
 * SSD: 10GB
 * CPU: 1 vCPU
-
----
-
-## RECOMMENDED SPEC
-
-* 1 vCPU
-* 1GB RAM
-* 10GB SSD
-* Ubuntu / Debian LTS version
 
 ---
 
@@ -178,9 +161,6 @@ Under Attack Mode      : OFF
 <p align="center">
 <a href="https://t.me/BangToyibbz"><img src="https://img.shields.io/badge/Telegram-Contact-blue?style=for-the-badge&logo=telegram"></a>
 </p>
-
 <p align="center">
-<a href="wa.me/6285960592386"><img src="https://img.shields.io/badge/WhatsApp-Contact-green?style=for-the-badge&logo=whatsapp"></a>
+<a href="https://wa.me/6285960592386"><img src="https://img.shields.io/badge/WhatsApp-Contact-green?style=for-the-badge&logo=whatsapp"></a>
 </p>
-```
-

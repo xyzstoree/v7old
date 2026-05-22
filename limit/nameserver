@@ -1,0 +1,14 @@
+#!/bin/bash
+# nameserver — placeholder installer SlowDNS (Bug #7 fix)
+#
+# File asli sebelumnya HILANG dari repo, sehingga `ssh_slow()` di install.sh
+# secara diam-diam download file kosong & SlowDNS tidak terpasang.
+# Sekarang install.sh meng-detect file kosong dan skip dengan pesan jelas;
+# file ini sengaja minimal supaya behavior aman: TIDAK CRASH, TIDAK INSTALL.
+#
+# Kalau kamu sudah punya installer SlowDNS sendiri, replace isi file ini
+# dengan installer asli.
+
+set -e
+echo "[INFO] SlowDNS installer placeholder. Silakan ganti dengan installer asli."
+exit 0
