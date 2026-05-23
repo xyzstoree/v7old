@@ -30,7 +30,7 @@ vmip() {
         data=( $(ls /etc/kyt/limit/vmess/ip 2>/dev/null) )
         for user in "${data[@]}"; do
             data_iplimit=$(cat "/etc/kyt/limit/vmess/ip/$user")
-            ehh=$(grep "$user" /var/log/xray/access.log \
+            ehh=$(grep -wF "$user" /var/log/xray/access.log \
                 | cut -d ' ' -f 3 | sed 's/tcp://g' | cut -d ':' -f 1 \
                 | sort -u)
             cekcek=$(printf '%s\n' "$ehh" | grep -c .)
@@ -54,7 +54,7 @@ vlip() {
         data=( $(ls /etc/kyt/limit/vless/ip 2>/dev/null) )
         for user in "${data[@]}"; do
             data_iplimit=$(cat "/etc/kyt/limit/vless/ip/$user")
-            ehh=$(grep "$user" /var/log/xray/access.log \
+            ehh=$(grep -wF "$user" /var/log/xray/access.log \
                 | cut -d ' ' -f 3 | sed 's/tcp://g' | cut -d ':' -f 1 \
                 | sort -u)
             cekcek=$(printf '%s\n' "$ehh" | grep -c .)
@@ -78,7 +78,7 @@ trip() {
         data=( $(ls /etc/kyt/limit/trojan/ip 2>/dev/null) )
         for user in "${data[@]}"; do
             data_iplimit=$(cat "/etc/kyt/limit/trojan/ip/$user")
-            ehh=$(grep "$user" /var/log/xray/access.log \
+            ehh=$(grep -wF "$user" /var/log/xray/access.log \
                 | cut -d ' ' -f 3 | sed 's/tcp://g' | cut -d ':' -f 1 \
                 | sort -u)
             cekcek=$(printf '%s\n' "$ehh" | grep -c .)

@@ -32,7 +32,7 @@ con() {
 accumulate_stats() {
     local prefix="$1" dir="$2"
     local data
-    data=( $(grep "^${prefix}" /etc/xray/config.json | cut -d ' ' -f 2 | sort -u) )
+    data=( $(grep -E "^${prefix} " /etc/xray/config.json | cut -d ' ' -f 2 | sort -u) )
     mkdir -p "/etc/limit/${dir}"
     for user in "${data[@]}"; do
         local raw inb outb quota0 quota1
@@ -65,7 +65,7 @@ run_protocol_loop() {
         accumulate_stats "$prefix" "$dir"
 
         local data dirty=0
-        data=( $(grep "^${prefix}" /etc/xray/config.json | cut -d ' ' -f 2 | sort -u) )
+        data=( $(grep -E "^${prefix} " /etc/xray/config.json | cut -d ' ' -f 2 | sort -u) )
         for user in "${data[@]}"; do
             [ -e "/etc/${dir}/${user}" ] || continue
             local cekdulu pakai
